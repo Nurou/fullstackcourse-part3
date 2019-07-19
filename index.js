@@ -28,6 +28,9 @@ const cors = require('cors');
 
 app.use(cors());
 
+// serve static files
+app.use(express.static('build'));
+
 // hard-coded list of phonebook entries
 // would normally exist on server
 let persons = [
