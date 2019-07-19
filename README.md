@@ -1,60 +1,21 @@
-# fullstackcourse 🔥
+# Part 3 - Full-Stack PhoneBook Application ☎️
 
-<img src="./assets/fslogo.svg" width="250" height="300" align="right"/>
+Stand-alone repo. 
 
-Here are my submissions for Helsinki University's **Full Stack Open** course.
-
-Course Description: *Deep Dive Into Modern Web Development*
-
-Link: https://fullstackopen.com
-
+## Task List
+- [x] 3.1
+- [x] 3.2 
+- [x] 3.3
+- [x] 3.4
+- [x] 3.5 
+- [x] 3.6
+- [x] 3.7
+- [x] 3.8
+- [x] 3.9 
+- [x] 3.10
+- [x] 3.11
 ---
+## Deployed app:
 
-Main technologies covered:
-- React
-- Redux
-- Node.js
-- MongoDB
-- GraphQL
+https://stark-cliffs-27352.herokuapp.com/
 
----
-## About Exercise submissions
-
-This repository covers parts 3 of the course. Each exercise has its own README with an image/gif demo the final result.
-
----
-## Breakdown of Parts & Progress
-### Part 1
-Covered the following topics:
-
-a) Introduction to React
-
-b) Javascript
-
-c) Component state, event handlers
-
-d) A more complex state, debugging React apps
-
-### Exercises
-- [x] courseinfo
-- [x] unicafe
-- [x] anecdotes
-
----
-### Part 2
-Covered the following topics:
-
-a) Rendering a collection, modules
-
-b) Forms
-
-c) Getting data from server
-
-d) Altering data in server
-
-e) Adding styles to React app
-
-### Exercises
-- [x] Course Content 
-- [x] Data For Countries 
-- [x] Phonebook
