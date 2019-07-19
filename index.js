@@ -58,32 +58,6 @@ let persons = [
   }
 ];
 
-// add note
-app.post('/notes', (request, response) => {
-  // get body from req
-  const body = request.body;
-
-  if (!body.content) {
-    // return crucial
-    return response.status(400).json({
-      error: 'content missing'
-    });
-  }
-
-  // if body supplied, note crafted from its contents
-  const note = {
-    // note content - can't be empty
-    content: body.content,
-    important: body.important || false,
-    date: new Date(),
-    id: generateID()
-  };
-  // add the new note (to db)
-  notes = notes.concat(note);
-  // return it
-  response.json(note);
-});
-
 app.get('/', (req, res) => {
   res.send('<h1>Part3</h1>');
 });
@@ -165,12 +139,12 @@ app.post('/api/persons/', (req, res) => {
   res.json(person);
 });
 
-// // post-routes middleware
-// const unknownEndpoint = (request, response) => {
-//   response.status(404).send({ error: 'unknown endpoint' });
-// };
+// middleware after routes
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' });
+};
 
-// app.use(unknownEndpoint);
+app.use(unknownEndpoint);
 
 const PORT = process.env.PORT || 3001;
 
