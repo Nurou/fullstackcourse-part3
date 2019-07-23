@@ -1,12 +1,9 @@
+require('dotenv').config();
 const express = require('express');
-// function used to create an express app
 const app = express();
+const Person = require('./models/person');
 
-/**
-|--------------------------------------------------
-| Middleware
-|--------------------------------------------------
-*/
+// MIDDLEWARE
 
 // without a body-parser, the body property would be undefined
 const bodyParser = require('body-parser');
@@ -15,8 +12,8 @@ app.use(bodyParser.json());
 // logging request data using morgan
 const morgan = require('morgan');
 
-morgan.token('data', function(req) {
-  return JSON.stringify(req.body);
+morgan.token('data', function(request) {
+  return JSON.stringify(request.body);
 });
 
 app.use(
@@ -61,96 +58,104 @@ let persons = [
   }
 ];
 
-app.get('/', (req, res) => {
-  res.send('<h1>Part3</h1>');
+app.get('/', (request, response) => {
+  response.send('<h1>Part3</h1>');
 });
 
-// display all persons
-app.get('/api/persons', (req, res) => {
-  res.send(persons);
+// retrieve all persons
+app.get('/api/persons', (request, response) => {
+  Person.find({}).then(persons => {
+    response.send(persons.map(person => person.toJSON()));
+  });
 });
 
-// display one person
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const person = persons.find(person => person.id === id);
-  if (person) {
-    // display person entry in JSON
-    res.json(person);
-  } else {
-    res.status(400).end();
-  }
+// retrieve one person
+app.get('/api/persons/:id', (request, response, next) => {
+  Person.findById(request.params.id)
+    .then(person => {
+      if (person) {
+        response.json(person.toJSON());
+      } else {
+        response.status(204).end();
+      }
+    })
+    .catch(error => next(error));
 });
 
 // display info
-app.get('/info', (req, res) => {
+app.get('/info', (request, response) => {
   let message = `Phonebook has info for ${persons.length} people 
   --
   ${new Date()}`;
-  res.send(message);
+  response.send(message);
 });
 
 // delete a person
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  persons = persons.filter(person => person.id !== id);
-  res.status(204).end();
+app.delete('/api/persons/:id', (request, response, next) => {
+  Person.findByIdAndRemove(request.params.id)
+    .then(result => {
+      response.status(204).end();
+    })
+    .catch(error => next(error));
 });
 
-const generateId = () => {
-  const maxId =
-    persons.length > 0 ? Math.max(...persons.map(person => person.id)) : 0;
-  return maxId + 1;
-};
-
-const generateRandomId = (min, max) => {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
-};
-// add persons
-app.post('/api/persons/', (req, res) => {
+// add a person
+app.post('/api/persons/', (request, response) => {
   // person content in request body
-  const body = req.body;
+  const body = request.body;
 
   // is info missing?
   if (!body.name && body.number) {
     // return crucial
-    return res.status(400).json({
+    return response.status(400).json({
       error: 'name or number missing'
     });
   }
 
-  // does person with same name already exist?
-  const isAlreadyAdded = persons.find(person => person.name === body.name);
-  if (isAlreadyAdded) {
-    return res.status(400).json({
-      error: 'name must be unique'
-    });
-  }
-
-  // new entry with details from req body
-  const person = {
-    id: generateRandomId(1, 100),
+  // person document from Person model
+  const person = Person({
     name: body.name,
     number: body.number
-  };
+  });
 
-  // add the new entry
-  persons = persons.concat(person);
-  // return added entry
-  res.json(person);
+  // save to db - .save() saves the document
+  // response is sent only if the operation succeeded
+  person.save().then(savedPerson => {
+    response.json(savedPerson.toJSON());
+  });
+
+  // does person with same name already exist?
+  // const isAlreadyAdded = persons.find(person => person.name === body.name);
+  // if (isAlreadyAdded) {
+  //   return res.status(400).json({
+  //     error: 'name must be unique'
+  //   });
+  // }
 });
 
-// middleware after routes
+// unknown endpoints handling middleware - defined after HTTP request handlers!
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' });
 };
 
 app.use(unknownEndpoint);
 
-const PORT = process.env.PORT || 3001;
+// error-handling middleware
 
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message);
+  // error with id?
+  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+    return response.status(400).send({ error: 'malformatted id' });
+  }
+
+  // otherwise, pass to built-in handler
+  next(error);
+};
+
+app.use(errorHandler);
+
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

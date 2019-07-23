@@ -1,0 +1,8 @@
+POST http://localhost:3001/api/persons/
+Content-type: application/json
+
+{
+    "name": "exercise 3.13 test",
+    "number": 666
+}
+
