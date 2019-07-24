@@ -1,6 +1,7 @@
 // MONGOOSE
 
 const mongoose = require('mongoose');
+const uniqueValidator = require('mongoose-unique-validator');
 
 const url = process.env.MONGODB_URI;
 
@@ -16,8 +17,17 @@ mongoose
   });
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String
+  name: {
+    type: String,
+    minlength: 3,
+    unique: true,
+    required: true
+  },
+  number: {
+    type: String,
+    minlength: 8,
+    required: true
+  }
 });
 
 // formatting returned person objects
@@ -28,6 +38,9 @@ personSchema.set('toJSON', {
     delete returnedObject.__v;
   }
 });
+
+// Apply the uniqueValidator plugin to personSchema.
+personSchema.plugin(uniqueValidator);
 
 // exporting the Person model
 // everything else will be invisible to module users

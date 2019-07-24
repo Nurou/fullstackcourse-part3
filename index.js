@@ -28,38 +28,8 @@ app.use(cors());
 // serve static files
 app.use(express.static('build'));
 
-// hard-coded list of phonebook entries
-// would normally exist on server
-let persons = [
-  {
-    name: 'Arto Hellas',
-    number: '040-123456',
-    id: 1
-  },
-  {
-    name: 'Ada Lovelace',
-    number: '39-44-5323523',
-    id: 2
-  },
-  {
-    name: 'Dan Abramov',
-    number: '12-43-234345',
-    id: 3
-  },
-  {
-    name: 'Mary Poppendieck',
-    number: '39-23-6423122',
-    id: 4
-  },
-  {
-    id: 5,
-    name: 'test',
-    number: '123'
-  }
-];
-
 app.get('/', (request, response) => {
-  response.send('<h1>Part3</h1>');
+  response.send('<h1>Part3 - Phonebook App</h1>');
 });
 
 // retrieve all persons
@@ -83,11 +53,15 @@ app.get('/api/persons/:id', (request, response, next) => {
 });
 
 // display info
-app.get('/info', (request, response) => {
-  let message = `Phonebook has info for ${persons.length} people 
-  --
-  ${new Date()}`;
-  response.send(message);
+app.get('/info', (request, response, next) => {
+  Person.countDocuments({}, (error, count) => {
+    if (error) next(error);
+
+    let message = `Phonebook has info for ${count} people 
+    --
+    ${new Date()}`;
+    response.send(message);
+  });
 });
 
 // delete a person
@@ -100,18 +74,14 @@ app.delete('/api/persons/:id', (request, response, next) => {
 });
 
 // add a person
-app.post('/api/persons/', (request, response) => {
+app.post('/api/persons/', (request, response, next) => {
   // person content in request body
   const body = request.body;
 
   // is info missing?
-  if (!body.name && body.number) {
-    // return crucial
-    return response.status(400).json({
-      error: 'name or number missing'
-    });
+  if (body.number === undefined || body.name === undefined) {
+    return response.status(400).json({ error: 'content missing' });
   }
-
   // person document from Person model
   const person = Person({
     name: body.name,
@@ -120,17 +90,28 @@ app.post('/api/persons/', (request, response) => {
 
   // save to db - .save() saves the document
   // response is sent only if the operation succeeded
-  person.save().then(savedPerson => {
-    response.json(savedPerson.toJSON());
-  });
+  person
+    .save()
+    .then(savedPerson => savedPerson.toJSON())
+    .then(savedAndFormattedPerson => response.json(savedAndFormattedPerson))
+    .catch(error => next(error));
+});
 
-  // does person with same name already exist?
-  // const isAlreadyAdded = persons.find(person => person.name === body.name);
-  // if (isAlreadyAdded) {
-  //   return res.status(400).json({
-  //     error: 'name must be unique'
-  //   });
-  // }
+// update existing contact
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body;
+  // updated document
+  const person = {
+    name: body.name,
+    number: body.number
+  };
+
+  const id = request.params.id;
+  Person.findByIdAndUpdate(id, person, { new: true })
+    .then(updatedPerson => {
+      response.json(updatedPerson.toJSON());
+    })
+    .catch(error => next(error));
 });
 
 // unknown endpoints handling middleware - defined after HTTP request handlers!
@@ -141,15 +122,16 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint);
 
 // error-handling middleware
-
 const errorHandler = (error, request, response, next) => {
   console.log(error.message);
   // error with id?
   if (error.name === 'CastError' && error.kind == 'ObjectId') {
     return response.status(400).send({ error: 'malformatted id' });
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).send({ error: error.message });
   }
 
-  // otherwise, pass to built-in handler
+  // none above? pass to built-in handler
   next(error);
 };
 
