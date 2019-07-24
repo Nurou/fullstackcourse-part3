@@ -1,92 +1,93 @@
-require('dotenv').config();
-const express = require('express');
-const app = express();
-const Person = require('./models/person');
+require('dotenv').config()
+
+const express = require('express')
+
+const app = express()
 
 // MIDDLEWARE
 
 // without a body-parser, the body property would be undefined
-const bodyParser = require('body-parser');
-app.use(bodyParser.json());
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.json())
 
 // logging request data using morgan
-const morgan = require('morgan');
+const morgan = require('morgan')
 
-morgan.token('data', function(request) {
-  return JSON.stringify(request.body);
-});
+morgan.token('data', request => JSON.stringify(request.body))
 
 app.use(
-  morgan(':method :url :status :res[content-length] - :response-time :data')
-);
+  morgan(':method :url :status :res[content-length] - :response-time :data'),
+)
 
 // cors
-const cors = require('cors');
+const cors = require('cors')
+const Person = require('./models/person')
 
-app.use(cors());
+app.use(cors())
 
 // serve static files
-app.use(express.static('build'));
+app.use(express.static('build'))
 
 app.get('/', (request, response) => {
-  response.send('<h1>Part3 - Phonebook App</h1>');
-});
+  response.send('<h1>Part3 - Phonebook App</h1>')
+})
 
 // retrieve all persons
 app.get('/api/persons', (request, response) => {
   Person.find({}).then(persons => {
-    response.send(persons.map(person => person.toJSON()));
-  });
-});
+    response.send(persons.map(person => person.toJSON()))
+  })
+})
 
 // retrieve one person
 app.get('/api/persons/:id', (request, response, next) => {
   Person.findById(request.params.id)
     .then(person => {
       if (person) {
-        response.json(person.toJSON());
+        response.json(person.toJSON())
       } else {
-        response.status(204).end();
+        response.status(204).end()
       }
     })
-    .catch(error => next(error));
-});
+    .catch(error => next(error))
+})
 
 // display info
 app.get('/info', (request, response, next) => {
   Person.countDocuments({}, (error, count) => {
-    if (error) next(error);
+    if (error) next(error)
 
-    let message = `Phonebook has info for ${count} people 
+    const message = `Phonebook has info for ${count} people 
     --
-    ${new Date()}`;
-    response.send(message);
-  });
-});
+    ${new Date()}`
+    response.send(message)
+  })
+})
 
 // delete a person
 app.delete('/api/persons/:id', (request, response, next) => {
   Person.findByIdAndRemove(request.params.id)
     .then(result => {
-      response.status(204).end();
+      response.status(204).end()
     })
-    .catch(error => next(error));
-});
+    .catch(error => next(error))
+})
 
 // add a person
 app.post('/api/persons/', (request, response, next) => {
   // person content in request body
-  const body = request.body;
+  const { body } = request
 
   // is info missing?
   if (body.number === undefined || body.name === undefined) {
-    return response.status(400).json({ error: 'content missing' });
+    return response.status(400).json({ error: 'content missing' })
   }
   // person document from Person model
   const person = Person({
     name: body.name,
-    number: body.number
-  });
+    number: body.number,
+  })
 
   // save to db - .save() saves the document
   // response is sent only if the operation succeeded
@@ -94,50 +95,50 @@ app.post('/api/persons/', (request, response, next) => {
     .save()
     .then(savedPerson => savedPerson.toJSON())
     .then(savedAndFormattedPerson => response.json(savedAndFormattedPerson))
-    .catch(error => next(error));
-});
+    .catch(error => next(error))
+})
 
 // update existing contact
 app.put('/api/persons/:id', (request, response, next) => {
-  const body = request.body;
+  const { body } = request
   // updated document
   const person = {
     name: body.name,
-    number: body.number
-  };
+    number: body.number,
+  }
 
-  const id = request.params.id;
+  const { id } = request.params
   Person.findByIdAndUpdate(id, person, { new: true })
-    .then(updatedPerson => {
-      response.json(updatedPerson.toJSON());
-    })
-    .catch(error => next(error));
-});
+    .then(updatedPerson => updatedPerson.toJSON())
+    .then(formattedAndUpdatedPerson => response.json(formattedAndUpdatedPerson))
+    .catch(error => next(error))
+})
 
 // unknown endpoints handling middleware - defined after HTTP request handlers!
 const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' });
-};
+  response.status(404).send({ error: 'unknown endpoint' })
+}
 
-app.use(unknownEndpoint);
+app.use(unknownEndpoint)
 
 // error-handling middleware
 const errorHandler = (error, request, response, next) => {
-  console.log(error.message);
+  console.log(error.message)
   // error with id?
-  if (error.name === 'CastError' && error.kind == 'ObjectId') {
-    return response.status(400).send({ error: 'malformatted id' });
-  } else if (error.name === 'ValidationError') {
-    return response.status(400).send({ error: error.message });
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
+    return response.status(400).send({ error: 'malformatted id' })
+  }
+  if (error.name === 'ValidationError') {
+    return response.status(400).send({ error: error.message })
   }
 
   // none above? pass to built-in handler
-  next(error);
-};
+  next(error)
+}
 
-app.use(errorHandler);
+app.use(errorHandler)
 
-const PORT = process.env.PORT;
+const { PORT } = process.env
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  console.log(`Server running on port ${PORT}`)
+})
